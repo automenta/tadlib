@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Random;
 
 public interface Initializer {
-    public void initialize(List<Tensor> initializables);
+    void initialize(List<Tensor> initializables);
 
-    public static class UniformInitializer implements Initializer {
+    class UniformInitializer implements Initializer {
 
         private final Random rng;
         private final float radius;

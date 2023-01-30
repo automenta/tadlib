@@ -3,9 +3,7 @@ package com.codeberry.tadlib.nn.layer;
 import com.codeberry.tadlib.nn.Model;
 import com.codeberry.tadlib.provider.java.Shape;
 import com.codeberry.tadlib.tensor.Tensor;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
 
-import java.util.List;
 import java.util.Random;
 
 import static com.codeberry.tadlib.nn.layer.Layer.ForwardResult.result;
@@ -58,11 +56,6 @@ public class BatchNormLayer implements Layer {
     @Override
     public Tensor[] getTrainableParams() {
         return new Tensor[]{beta, gamma};
-    }
-
-    @Override
-    public List<? extends DisposalRegister.Disposable> getKeepInMemoryDisposables() {
-        return runningAverages.getKeepInMemoryDisposables();
     }
 
     public static class Builder implements LayerBuilder {

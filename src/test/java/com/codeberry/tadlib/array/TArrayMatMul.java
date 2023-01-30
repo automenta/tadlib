@@ -29,7 +29,7 @@ class TArrayMatMul {
         NDArray c = a.matmul(b);
 
         double[][] out = (double[][]) c.toDoubles();
-        assertArrayEquals(new double[]{0 * 10 + 1 * 11 + 2 * 13}, out[0]);
+        assertArrayEquals(new double[]{11 + 2 * 13}, out[0]);
         assertArrayEquals(new double[]{3 * 10 + 4 * 11 + 5 * 13}, out[1]);
 
     }
@@ -58,7 +58,7 @@ class TArrayMatMul {
         NDArray c = a.matmul(b);
 
         double[] out = (double[]) c.toDoubles();
-        assertArrayEquals(new double[]{1 * 10 + 2 * 20, 3 * 10 + 4 * 20}, out);
+        assertArrayEquals(new double[]{10 + 2 * 20, 3 * 10 + 4 * 20}, out);
     }
 
     @Test
@@ -72,7 +72,7 @@ class TArrayMatMul {
         NDArray c = a.matmul(b);
 
         double[] out = (double[]) c.toDoubles();
-        assertArrayEquals(new double[]{1 * 10 + 3 * 20, 2 * 10 + 4 * 20}, out);
+        assertArrayEquals(new double[]{10 + 3 * 20, 2 * 10 + 4 * 20}, out);
     }
 
     @Test
@@ -83,7 +83,7 @@ class TArrayMatMul {
         NDArray c = a.matmul(b);
 
         double out = (double) c.toDoubles();
-        assertEquals(1 * 10, 2 * 20, out);
+        assertEquals(10, 2 * 20, out);
     }
 
     @Test

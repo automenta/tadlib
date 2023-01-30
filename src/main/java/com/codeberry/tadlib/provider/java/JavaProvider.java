@@ -10,12 +10,12 @@ public class JavaProvider implements Provider {
 
     public JavaProvider() {
         this(
-                ThreadMode.MULTI_THREADED
-                //ThreadMode.SINGLE_THREADED
+            ThreadMode.MULTI_THREADED
+            //ThreadMode.SINGLE_THREADED
         );
     }
 
-    public JavaProvider(ThreadMode mode) {
+    private JavaProvider(ThreadMode mode) {
         if (mode == ThreadMode.MULTI_THREADED) {
             MultiThreadingSupport.enableMultiThreading();
         } else {
@@ -42,14 +42,13 @@ public class JavaProvider implements Provider {
     @Override
     public JavaIntArray createIntArray(Object multiDimArray) {
         MultiDimArrayFlattener<int[]> preparedData = MultiDimArrayFlattener.prepareFlatData(multiDimArray, int[]::new);
-
         return new JavaIntArray(preparedData.data, new Shape(preparedData.dimensions));
     }
 
     @Override
     public JavaIntArray createIntArrayWithValue(Shape shape, int v) {
         int[] data = new int[Math.toIntExact(shape.size)];
-        Arrays.fill(data, v);
+        if (v!=0) Arrays.fill(data, v);
         return new JavaIntArray(data, shape);
     }
 

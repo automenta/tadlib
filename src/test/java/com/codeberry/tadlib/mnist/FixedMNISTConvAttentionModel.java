@@ -11,7 +11,6 @@ import com.codeberry.tadlib.tensor.OpsExtended;
 import com.codeberry.tadlib.tensor.Tensor;
 import com.codeberry.tadlib.util.Batch;
 import com.codeberry.tadlib.util.TrainingDataUtils;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,7 +31,6 @@ import static com.codeberry.tadlib.tensor.Tensor.constant;
 import static com.codeberry.tadlib.util.ReflectionUtils.getFieldValues;
 import static java.lang.Math.*;
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
 
 /**
  * A hardcoded model using convolutions and attention.
@@ -152,23 +150,23 @@ public class FixedMNISTConvAttentionModel implements Model {
         return new PredictionAndLosses(y, trainingTasks, totalLoss, l2Loss);
     }
 
-    @Override
-    public List<DisposalRegister.Disposable> getKeepInMemoryDisposables() {
-        List<BatchNormLayer> batchNormLayers = getFieldValues(BatchNormLayer.class, this);
-        List<DisposalRegister.Disposable> keepObjects = batchNormLayers.stream()
-                .map(batchNormLayer -> batchNormLayer.bnAverages.getKeepInMemoryDisposables())
-                .flatMap(Collection::stream)
-                .collect(toList());
-
-        for (AttentionLayer al : attentionLayers) {
-            List<BatchNormLayer> alBns = getFieldValues(BatchNormLayer.class, al);
-            for (BatchNormLayer alBn : alBns) {
-                keepObjects.addAll(alBn.bnAverages.getKeepInMemoryDisposables());
-            }
-        }
-
-        return keepObjects;
-    }
+//    @Override
+//    public List<DisposalRegister.Disposable> getKeepInMemoryDisposables() {
+//        List<BatchNormLayer> batchNormLayers = getFieldValues(BatchNormLayer.class, this);
+//        List<DisposalRegister.Disposable> keepObjects = batchNormLayers.stream()
+//                .map(batchNormLayer -> batchNormLayer.bnAverages.getKeepInMemoryDisposables())
+//                .flatMap(Collection::stream)
+//                .collect(toList());
+//
+//        for (AttentionLayer al : attentionLayers) {
+//            List<BatchNormLayer> alBns = getFieldValues(BatchNormLayer.class, al);
+//            for (BatchNormLayer alBn : alBns) {
+//                keepObjects.addAll(alBn.bnAverages.getKeepInMemoryDisposables());
+//            }
+//        }
+//
+//        return keepObjects;
+//    }
 
     public List<Tensor> getParams() {
         List<Tensor> params = getFieldValues(Tensor.class, this);

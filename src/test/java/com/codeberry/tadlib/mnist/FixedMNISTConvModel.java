@@ -7,7 +7,6 @@ import com.codeberry.tadlib.tensor.Tensor;
 import com.codeberry.tadlib.util.Batch;
 import com.codeberry.tadlib.util.ReflectionUtils;
 import com.codeberry.tadlib.util.TrainingDataUtils;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,13 +101,13 @@ public class FixedMNISTConvModel implements Model {
         return new PredictionAndLosses(y, trainingTasks, totalLoss, l2Loss);
     }
 
-    @Override
-    public List<DisposalRegister.Disposable> getKeepInMemoryDisposables() {
-        List<DisposalRegister.Disposable> r = new ArrayList<>();
-        r.addAll(secondConvBnAverages.getKeepInMemoryDisposables());
-        r.addAll(fullyConBnAverages.getKeepInMemoryDisposables());
-        return r;
-    }
+//    @Override
+//    public List<DisposalRegister.Disposable> getKeepInMemoryDisposables() {
+//        List<DisposalRegister.Disposable> r = new ArrayList<>();
+//        r.addAll(secondConvBnAverages.getKeepInMemoryDisposables());
+//        r.addAll(fullyConBnAverages.getKeepInMemoryDisposables());
+//        return r;
+//    }
 
     public List<Tensor> getParams() {
         return ReflectionUtils.getFieldValues(Tensor.class, this);

@@ -3,7 +3,6 @@ package com.codeberry.tadlib.array;
 import com.codeberry.tadlib.provider.java.JavaIntArray;
 import com.codeberry.tadlib.provider.java.NDArray;
 import com.codeberry.tadlib.provider.java.Shape;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
 
 import java.util.Random;
 
@@ -53,9 +52,9 @@ public abstract class TArrayFactory {
     }
 
     public static NDArray randomWeight(Random rand, Shape shape) {
-        int size = Math.toIntExact(shape.size);
-
-        return DisposalRegister.disposeAllExceptReturnedValue(() -> randomWeight(rand, size).reshape(shape));
+        return randomWeight(rand, Math.toIntExact(shape.size)).reshape(shape);
+//        return DisposalRegister.disposeAllExceptReturnedValue(() ->
+//                randomWeight(rand, size).reshape(shape));
     }
 
     public static NDArray randomWeight(Random rand, int size) {

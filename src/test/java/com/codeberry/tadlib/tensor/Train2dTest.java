@@ -27,7 +27,7 @@ public class Train2dTest {
 
         Random nr = new Random(4);
         int hiddenOut = 3;
-        Tensor w = new Tensor(randMatrix(nr, 3 * 3 * 1 * hiddenOut)
+        Tensor w = new Tensor(randMatrix(nr, 3 * 3 * hiddenOut)
                 .reshape(3, 3, 1, hiddenOut));
         Tensor b = new Tensor(randMatrix(nr, hiddenOut));
 

@@ -12,7 +12,7 @@ public class TensorConcatTest {
     @Test
     public void concat2Tensors() {
         Tensor a = new Tensor(range(2 * 3 * 4).reshape(2, 3, 4));
-        Tensor b = new Tensor(range(1 * 3 * 4).reshape(1, 3, 4).mul(10));
+        Tensor b = new Tensor(range(3 * 4).reshape(1, 3, 4).mul(10));
 
         Tensor concat = Ops.concat(0, a, b);
         NDArray fakeGradient = range(3 * 3 * 4).reshape(3, 3, 4);
@@ -38,8 +38,8 @@ public class TensorConcatTest {
     @Test
     public void concat3Tensors() {
         Tensor a = new Tensor(range(2 * 3 * 4).reshape(2, 3, 4));
-        Tensor b = new Tensor(range(1 * 3 * 4).reshape(1, 3, 4).mul(10));
-        Tensor c = new Tensor(range(1 * 3 * 4).reshape(1, 3, 4).mul(100));
+        Tensor b = new Tensor(range(3 * 4).reshape(1, 3, 4).mul(10));
+        Tensor c = new Tensor(range(3 * 4).reshape(1, 3, 4).mul(100));
 
         Tensor concat = Ops.concat(0, a, b, c);
         NDArray fakeGradient = range(4 * 3 * 4).reshape(4, 3, 4);
@@ -69,12 +69,12 @@ public class TensorConcatTest {
 
     @Test
     public void concat3Tensors_OnAxis1() {
-        Tensor a = new Tensor(range(1 * 2 * 4).reshape(1, 2, 4));
-        Tensor b = new Tensor(range(1 * 2 * 4).reshape(1, 2, 4).mul(10));
-        Tensor c = new Tensor(range(1 * 2 * 4).reshape(1, 2, 4).mul(100));
+        Tensor a = new Tensor(range(2 * 4).reshape(1, 2, 4));
+        Tensor b = new Tensor(range(2 * 4).reshape(1, 2, 4).mul(10));
+        Tensor c = new Tensor(range(2 * 4).reshape(1, 2, 4).mul(100));
 
         Tensor concat = Ops.concat(-1, a, b, c);
-        NDArray fakeGradient = range(1 * 2 * (4 * 3)).reshape(1, 2, 4 * 3);
+        NDArray fakeGradient = range(2 * (4 * 3)).reshape(1, 2, 4 * 3);
         concat.backward(fakeGradient);
 
         assertEqualsMatrix(array(new double[]{

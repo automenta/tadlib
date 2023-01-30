@@ -12,14 +12,11 @@ import com.codeberry.tadlib.util.TrainingData;
 import com.codeberry.tadlib.util.memory.LeakDetector;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import static com.codeberry.tadlib.util.AccuracyUtils.softmaxAccuracy;
-import static com.codeberry.tadlib.util.memory.DisposalRegister.Disposable;
 import static com.codeberry.tadlib.util.memory.DisposalRegister.modelIteration;
-import static java.util.Collections.emptyList;
 
 public class SimpleTrainer {
 
@@ -28,7 +25,7 @@ public class SimpleTrainer {
     public final TrainingData data;
     private final Model model;
     private final Optimizer optimizer;
-    private volatile RunPerformance performance = RunPerformance.FULL_SPEED;
+    private final RunPerformance performance = RunPerformance.FULL_SPEED;
 
     public SimpleTrainer(TrainParams params) {
         this.params = params;
@@ -67,13 +64,8 @@ public class SimpleTrainer {
 
             double[] testAccuracy = new double[1];
             for (int batchId = 0; batchId < numberOfTestBatches; batchId++) {
-
                 IterationInfo iterationInfo = new IterationInfo(-1, batchId, numberOfTestBatches);
-                modelIteration(() -> {
-                    testAccuracy[0] += testBatch(iterationInfo);
-
-                    return emptyList();
-                });
+                modelIteration(() -> testAccuracy[0] += testBatch(iterationInfo));
             }
             double testAcc = testAccuracy[0] / numberOfTestBatches;
             System.out.println("* Test acc: " + testAcc);
@@ -103,7 +95,7 @@ public class SimpleTrainer {
         return softmaxAccuracy(testBatch.output, predict);
     }
 
-    private List<Disposable> trainBatch(Random rnd, TrainStats stats, IterationInfo iterationInfo) {
+    private void trainBatch(Random rnd, TrainStats stats, IterationInfo iterationInfo) {
         Batch batchData = data.getTrainingBatch(iterationInfo.batchIndex, params.batchSize);
 
         Model.PredictionAndLosses pl = model.train(rnd, batchData, optimizer, iterationInfo);
@@ -112,19 +104,6 @@ public class SimpleTrainer {
 
         logger.log(iterationInfo.batchIndex, iterationInfo.batchCount, model, stats);
 
-        return getKeepInMemoryDisposables();
-    }
-
-    /**
-     * @return disposables that must be kept (not disposed/released) after a training/predict iteration.
-     */
-    private List<Disposable> getKeepInMemoryDisposables() {
-        List<Disposable> objects = new ArrayList<>(model.getKeepInMemoryDisposables());
-        for (Tensor param : model.getParams()) {
-            objects.addAll(param.getDisposables());
-        }
-        objects.addAll(optimizer.getKeepInMemoryDisposables());
-        return objects;
     }
 
     private void handlePause() {

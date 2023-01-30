@@ -16,20 +16,15 @@ public class TMutableArray {
     /**
      * @return 0 when out of bounds
      */
-    public double dataAt(int... indices) {
-        if (shape.isValid(indices)) {
-            int idx = shape.calcDataIndex(indices);
-            return data[idx];
-        }
-        return 0;
+    double dataAt(int... indices) {
+        return shape.isValid(indices) ? data[shape.calcDataIndex(indices)] : 0;
     }
 
     public void setAt(int[] indices, double v) {
-        int offset = shape.calcDataIndex(indices);
-        setAtOffset(offset, v);
+        setAtOffset(shape.calcDataIndex(indices), v);
     }
 
-    public void setAtOffset(int offset, double v) {
+    void setAtOffset(int offset, double v) {
         data[offset] = v;
     }
 
@@ -40,7 +35,7 @@ public class TMutableArray {
     /**
      * The current instance cannot be used after this call.
      */
-    public synchronized NDArray migrateToImmutable() {
+    synchronized NDArray migrateToImmutable() {
         NDArray immutable = new NDArray(this.data, shape);
 
         this.data = null;

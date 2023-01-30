@@ -31,7 +31,7 @@ public class TensorTrainSimple {
 
         Tensor y = ADD(MATMUL(x_data, w), b);
         Tensor diff = SUB(y, y_data);
-        Tensor diffSq = MUL(diff, diff);
+        Tensor diffSq = SQR(diff);
         Tensor diffSqSum = SUM(diffSq);
 
         double err = Double.POSITIVE_INFINITY;
@@ -72,18 +72,21 @@ public class TensorTrainSimple {
     }
 
     private static void testOptimizer(Optimizer opt, boolean twoLayers) {
-        Random rng = new Random(3);
+        int seed = 3;
 
-        Tensor x_data = new Tensor(random(rng, 100, 3));
-        Tensor y_data = new Tensor(x_data.val().matmul(ProviderStore.array(new double[]{5, -2, 3.5})).add(5.0).reshape(100, 1));
+        int n = 100, m = 3;
+
+        Random rng = new Random(seed);
+
+        Tensor x = new Tensor(random(rng, n, m));
+        Tensor yIdeal = new Tensor(x.val().matmul(ProviderStore.array(new double[]{5, -2, 3.5})).add(5.0).reshape(n, 1));
 
         Tensor y = !twoLayers ?
-            DENSE(x_data, 1, true)
+            DENSE(x, 1)
             :
-            DENSE( RELU( DENSE(x_data, 4)), 1);
-            //DENSE(DENSE(x_data, 4, true), 1, true);
+            DENSE( RELU( DENSE(x, 4)), 1);
 
-        Tensor diff = SUB(y, y_data);
+        Tensor diff = SUB(y, yIdeal);
         Tensor diffSq = MUL(diff, diff);
         Tensor diffSqSum = SUM(diffSq);
 
@@ -133,10 +136,10 @@ public class TensorTrainSimple {
         return vals;
     }
 
-    public static double[] random(Random rand, int len) {
+    public static double[] random(Random rng, int len) {
         double[] row = new double[len];
         for (int i = 0; i < row.length; i++) {
-            row[i] = rand.nextDouble();
+            row[i] = rng.nextDouble();
         }
         return row;
     }

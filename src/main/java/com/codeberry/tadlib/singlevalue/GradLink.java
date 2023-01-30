@@ -7,7 +7,7 @@ public class GradLink {
     public final Value value;
     public final GradFunc gradFunc;
 
-    public GradLink(Value value, GradFunc gradFunc) {
+    private GradLink(Value value, GradFunc gradFunc) {
         this.value = value;
         this.gradFunc = gradFunc;
     }

@@ -28,17 +28,18 @@ public class DisposalRegister {
      * <p>
      * Resources returned by the callable is left untouched.
      */
-    public static void modelIteration(Callable<List<Disposable>> callable) {
+    public static void modelIteration(Runnable callable) {
         synchronized (TRAINING_ITERATION_DISPOSABLE) {
             if (TRAINING_ITERATION_DISPOSABLE.get() != null) {
                 throw new IllegalStateException("Cannot be called recursively");
             }
 
-            List<Disposable> toBeDisposed = new ArrayList<>();
-            List<Disposable> mustKeepAfterReturn = emptyList();
+            @Deprecated List<Disposable> toBeDisposed = new ArrayList<>();
+            @Deprecated List<Disposable> mustKeepAfterReturn = emptyList();
             try {
                 TRAINING_ITERATION_DISPOSABLE.set(toBeDisposed);
-                mustKeepAfterReturn = disposeAllExceptReturnedValues(callable);
+                //mustKeepAfterReturn = disposeAllExceptReturnedValues(callable);
+                callable.run();
             } finally {
                 for (Disposable d : toBeDisposed) {
                     if (!mustKeepAfterReturn.contains(d)) {
@@ -50,13 +51,11 @@ public class DisposalRegister {
         }
     }
 
-    public static void registerDisposer(Object object, AbstractDisposer disposer) {
-        Cleaner.Cleanable cleanable = cleaner.register(object, disposer::releaseByGcOrCleaner);
+//    public static void registerDisposer(Object object, AbstractDisposer disposer) {
+//        disposer.setCleanable(cleaner.register(object, disposer::releaseByGcOrCleaner));
+//    }
 
-        disposer.setCleanable(cleanable);
-    }
-
-    public interface Disposable {
+    @Deprecated public interface Disposable {
         void prepareDependenciesForDisposal();
 
         void dispose();

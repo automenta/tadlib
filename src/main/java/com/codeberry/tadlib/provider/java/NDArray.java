@@ -7,7 +7,6 @@ import com.codeberry.tadlib.array.util.SoftmaxUtils;
 import com.codeberry.tadlib.provider.ProviderStore;
 import com.codeberry.tadlib.util.MultiThreadingSupport;
 import com.codeberry.tadlib.util.StringUtils;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,9 +19,10 @@ import static com.codeberry.tadlib.provider.java.NDArray.DimKeepRemove.REMOVE_DI
 import static com.codeberry.tadlib.util.MultiThreadingSupport.TaskRange.taskRange;
 import static com.codeberry.tadlib.util.MultiThreadingSupport.multiThreadingSupportRun;
 import static java.lang.Math.*;
-import static java.util.Arrays.*;
+import static java.util.Arrays.copyOf;
+import static java.util.Arrays.fill;
 
-public class NDArray implements DisposalRegister.Disposable {
+public class NDArray  {
     public final double[] data;
     public final Shape shape;
 
@@ -31,7 +31,7 @@ public class NDArray implements DisposalRegister.Disposable {
     }
 
     public NDArray(double[] data) {
-        this(data, new Shape(data.length));
+        this(data, Shape.shape(data.length));
     }
 
     public NDArray(Shape shape) {
@@ -397,7 +397,7 @@ public class NDArray implements DisposalRegister.Disposable {
             fillValueAtIndicesOnAxis(indices, src, shape.newIndexArray(), safeAxis,
                     data, outShape, outShape.newIndexArray(), 0);
         } else {
-            data[0] = src.dataAt((Integer) indices.toInts());
+            data[0] = src.dataAtIndex((Integer) indices.toInts());
         }
 
         return new NDArray(data, outShape);
@@ -412,9 +412,7 @@ public class NDArray implements DisposalRegister.Disposable {
 
             if (tgtDim == tgtIndices.length - 1) {
                 srcIndices[axis] = valueIndices.dataAt(tgtIndices);
-
-                int offset = tgtShape.calcDataIndex(tgtIndices);
-                tgt[offset] = src.dataAt(srcIndices);
+                tgt[tgtShape.calcDataIndex(tgtIndices)] = src.dataAt(srcIndices);
             } else {
                 fillValueAtIndicesOnAxis(valueIndices, src, srcIndices, axis, tgt, tgtShape, tgtIndices, tgtDim + 1);
             }
@@ -457,8 +455,7 @@ public class NDArray implements DisposalRegister.Disposable {
                 int axisIndex = valueIndices.dataAt(srcIndices);
                 if (axisIndex >= 0 && axisIndex < axisLen) {
                     tgtIndices[axis] = axisIndex;
-                    int offset = tgtShape.calcDataIndex(tgtIndices);
-                    tgt[offset] = src.dataAt(srcIndices);
+                    tgt[tgtShape.calcDataIndex(tgtIndices)] = src.dataAt(srcIndices);
                 } else {
                     throw new IndexOutOfBoundsException("Indices for axis " + axis + " must be in range [0," +
                             axisLen + "]: actual.indices" + Arrays.toString(tgtIndices) + "]=" + axisIndex);
@@ -542,14 +539,14 @@ public class NDArray implements DisposalRegister.Disposable {
         return copy;
     }
 
-    private static Shape[] getShapes(Shape thisShape, NDArray[] appendees) {
-        Shape[] r = new Shape[appendees.length + 1];
-        r[0] = thisShape;
-        for (int i = 0; i < appendees.length; i++) {
-            r[i + 1] = appendees[i].shape;
-        }
-        return r;
-    }
+//    private static Shape[] getShapes(Shape thisShape, NDArray[] appendees) {
+//        Shape[] r = new Shape[appendees.length + 1];
+//        r[0] = thisShape;
+//        for (int i = 0; i < appendees.length; i++) {
+//            r[i + 1] = appendees[i].shape;
+//        }
+//        return r;
+//    }
 
     private static void fillConcat(NDArray[] srcs, int[] srcIndices,
                                    int axis, int[] axisLens,
@@ -621,9 +618,7 @@ public class NDArray implements DisposalRegister.Disposable {
 
             if (dim == outIndices.length - 1) {
                 //... then is the last dimension
-
-                int outOffset = outShape.calcDataIndex(outIndices);
-                data[outOffset] = src.dataAt(srcIndices);
+                data[outShape.calcDataIndex(outIndices)] = src.dataAt(srcIndices);
             } else {
                 fillSplit(src, srcIndices, axis, offset, axisLen, data, outShape, outIndices, dim + 1);
             }
@@ -641,8 +636,7 @@ public class NDArray implements DisposalRegister.Disposable {
                 //... then is the last dimension
                 // set last dim to same index, it's the diagonal
                 outIndices[srcDim + 1] = i;
-                int outOffset = outShape.calcDataIndex(outIndices);
-                out[outOffset] = src.dataAt(srcIndices);
+                out[outShape.calcDataIndex(outIndices)] = src.dataAt(srcIndices);
             } else {
                 fillDiagonal(src, srcIndices, out, outShape, outIndices, srcDim + 1);
             }
@@ -666,13 +660,13 @@ public class NDArray implements DisposalRegister.Disposable {
     }
 
     public NDArray reshape(Shape shape) {
-        if (this.shape.getClass() != shape.getClass()) {
+        if (this.shape.getClass() != shape.getClass())
             throw new UnsupportedOperationException();
-        }
+
         int[] dims = new int[shape.dimCount];
-        for (int i = 0; i < dims.length; i++) {
+        for (int i = 0; i < dims.length; i++)
             dims[i] = shape.at(i);
-        }
+
         return reshape(dims);
     }
 
@@ -689,22 +683,21 @@ public class NDArray implements DisposalRegister.Disposable {
     }
 
     private static NDArray add(NDArray a, NDArray b) {
-        if (a.shape.dimCount == 0 &&
-                b.shape.dimCount == 0) {
-            return new NDArray(a.data[0] + b.data[0]);
+        Shape as = a.shape, bs = b.shape;
+        if (as.dimCount == 0 && bs.dimCount == 0) {
+            return new NDArray(a.data[0] + b.data[0] );
         }
-        if (a.shape.getClass() == b.shape.getClass() &&
-                Arrays.equals(a.shape.dims, b.shape.dims)) {
+        if (as.getClass() == bs.getClass() &&
+                Arrays.equals(as.dims, bs.dims)) {
             return fastAdd(a, b);
         }
 
-        validateBroadcastShapes(a.shape, b.shape, -1);
-        Shape outShape = evalBroadcastOutputShape(a.shape, b.shape);
+        validateBroadcastShapes(as, bs, -1);
+        Shape outShape = evalBroadcastOutputShape(as, bs);
 
-        int[] indexArray = outShape.newIndexArray();
         double[] data = new double[outShape.size];
 
-        add(a, b, data, outShape, indexArray, 0);
+        add(a, b, data, outShape, outShape.newIndexArray(), 0);
 
         return new NDArray(data, outShape);
     }
@@ -811,9 +804,7 @@ public class NDArray implements DisposalRegister.Disposable {
                     for (int x = 0; x < fW; x++) {
                         inIndices[inXIdx] = oldX + x + fXOffset;
                         fIndices[1] = x;
-                        double iVal = input.dataAt(inIndices);
-                        double fVal = filter.dataAt(fIndices);
-                        v += iVal * fVal;
+                        v += input.dataAt(inIndices) * filter.dataAt(fIndices);
                     }
                 }
             }
@@ -829,20 +820,13 @@ public class NDArray implements DisposalRegister.Disposable {
     /**
      * @return 0 when out of bounds
      */
-    public final double dataAt(int... indices) {
-        if (indices.length == 1 && indices[0] == 0 && data.length == 1) {
-            //scalar HACK
-            return data[0];
-        }
-        if (shape.isValid(indices))
-            return data[shape.calcDataIndex(indices)];
-        else
-            return 0; //OOB  //throw new UnsupportedOperationException();
+    public final double dataAt(int[] indices) {
+        return shape.dataAt(data, indices, 0);
     }
 
     public NDArray compare(JavaIntArray other, Comparison comparison, double trueValue, double falseValue) {
         Shape rightShape = other.shape;
-        IntFunction<Double> left = offset -> this.data[offset];
+        IntFunction<Double> left  = offset -> this.data[offset];
         IntFunction<Double> right = offset -> (double) other.data[offset];
 
         return CompareHelper.compare(comparison::doubleIsTrue, trueValue, falseValue,
@@ -850,7 +834,7 @@ public class NDArray implements DisposalRegister.Disposable {
     }
 
     public NDArray compare(NDArray other, Comparison comparison, double trueValue, double falseValue) {
-        IntFunction<Double> left = offset -> this.data[offset];
+        IntFunction<Double> left  = offset -> this.data[offset];
         IntFunction<Double> right = offset -> other.data[offset];
 
         return CompareHelper.compare(comparison::doubleIsTrue, trueValue, falseValue,
@@ -864,7 +848,7 @@ public class NDArray implements DisposalRegister.Disposable {
     }
 
     private static NDArray matmul(NDArray a, NDArray b) {
-        MatMulParams params = MatMulParams.expandSingleDimArrays(a.shape, b.shape, Shape::new);
+        MatMulParams params = MatMulParams.expandSingleDimArrays(a.shape, b.shape, Shape::shape);
         validateMatMulShapes(params.leftShape, params.rightShape);
         validateBroadcastShapes(params.leftShape, params.rightShape, -3);
 
@@ -894,41 +878,41 @@ public class NDArray implements DisposalRegister.Disposable {
         return 1 + 512 / (valuesToMulPerOutput * outputsPerRow);
     }
 
-    public NDArray normalOrderedCopy() {
+    public final NDArray normalOrderedCopy() {
         Shape tgtShape = this.shape.normalOrderedCopy();
-        double[] data = this.shape.convertDataToShape(this.data, tgtShape);
-
-        return new NDArray(data, tgtShape);
+        return new NDArray(
+            this.shape.convertDataToShape(this.data, tgtShape),
+            tgtShape);
     }
 
-    private NDArray expandDims(int... indicesForSingleDims) {
-        if (shape instanceof ReorderedJavaShape) {
-            return expandDims(this.normalOrderedCopy(), indicesForSingleDims);
-        }
-        return expandDims(this, indicesForSingleDims);
-    }
-
-    private static NDArray expandDims(NDArray m, int... indicesForSingleDims) {
-        int[] _tmp = copyOf(indicesForSingleDims, indicesForSingleDims.length);
-        for (int i = 0; i < _tmp.length; i++) {
-            if (_tmp[i] <= -1)
-                _tmp[i] += m.shape.dimCount + 1;
-        }
-        sort(_tmp);
-        List<Integer> dims = new ArrayList<>();
-        for (int i = 0; i < m.shape.dimCount; i++) {
-            dims.add(m.shape.at(i));
-        }
-        for (int i = _tmp.length - 1; i >= 0; i--) {
-            dims.add(_tmp[i], 1);
-        }
-        int[] dimArr = new int[dims.size()];
-        for (int i = 0; i < dims.size(); i++) {
-            dimArr[i] = dims.get(i);
-        }
-
-        return new NDArray(m.data, new Shape(dimArr));
-    }
+//    private NDArray expandDims(int... indicesForSingleDims) {
+//        if (shape instanceof ReorderedJavaShape) {
+//            return expandDims(this.normalOrderedCopy(), indicesForSingleDims);
+//        }
+//        return expandDims(this, indicesForSingleDims);
+//    }
+//
+//    private static NDArray expandDims(NDArray m, int... indicesForSingleDims) {
+//        int[] _tmp = copyOf(indicesForSingleDims, indicesForSingleDims.length);
+//        for (int i = 0; i < _tmp.length; i++) {
+//            if (_tmp[i] <= -1)
+//                _tmp[i] += m.shape.dimCount + 1;
+//        }
+//        sort(_tmp);
+//        List<Integer> dims = new ArrayList<>();
+//        for (int i = 0; i < m.shape.dimCount; i++) {
+//            dims.add(m.shape.at(i));
+//        }
+//        for (int i = _tmp.length - 1; i >= 0; i--) {
+//            dims.add(_tmp[i], 1);
+//        }
+//        int[] dimArr = new int[dims.size()];
+//        for (int i = 0; i < dims.size(); i++) {
+//            dimArr[i] = dims.get(i);
+//        }
+//
+//        return new NDArray(m.data, new Shape(dimArr));
+//    }
 
     private static void add(NDArray a, NDArray b,
                             double[] out, Shape outShape,
@@ -939,10 +923,8 @@ public class NDArray implements DisposalRegister.Disposable {
             int dims = indices.length;
             for (int x = 0; x < w; x++) {
                 indices[dims - 1] = x;
-                double _a = a.getBroadcasted(indices);
-                double _b = b.getBroadcasted(indices);
-                int outIndex = outShape.calcDataIndex(indices);
-                out[outIndex] = _a + _b;
+                out[outShape.calcDataIndex(indices)] =
+                    a.getBroadcasted(indices) + b.getBroadcasted(indices);
             }
         } else {
             int at = outShape.at(dim);
@@ -1000,8 +982,7 @@ public class NDArray implements DisposalRegister.Disposable {
     }
 
     public static Shape evalMatMulShape(Shape a, Shape b) {
-        int[] dims = evalMatMulResultDims(a, b);
-        return new Shape(dims);
+        return new Shape(evalMatMulResultDims(a, b));
     }
 
     public NDArray transpose(int... axes) {
@@ -1151,32 +1132,26 @@ public class NDArray implements DisposalRegister.Disposable {
     }
 
     public NDArray sum(boolean[] dimsToCollapse, DimKeepRemove keepRemove) {
-        if (dimsToCollapse.length != shape.dimCount) {
+        if (dimsToCollapse.length != shape.dimCount)
             throw new RuntimeException("input collapse dims must have same length as shape");
-        }
+
         Shape physicalShape = toPhysicalShape(shape, dimsToCollapse);
         int[] dimMapping = createSrcToTargetMapping(dimsToCollapse);
 
         double[] target = new double[toIntExact(physicalShape.size)];
         sum(data, shape, shape.newIndexArray(), 0,
-                target, physicalShape, physicalShape.newIndexArray(), dimMapping);
+            target, physicalShape, physicalShape.newIndexArray(), dimMapping);
 
-        if (keepRemove == DimKeepRemove.KEEP_DIM) {
-            return new NDArray(target, toPhysicalShapeWithKeep(shape, dimsToCollapse));
-        }
-        return new NDArray(target, physicalShape);
+        return new NDArray(target,
+            keepRemove == DimKeepRemove.KEEP_DIM ?
+                toPhysicalShapeWithKeep(shape, dimsToCollapse) :
+                physicalShape
+        );
     }
 
     public void sum(NDArray x, boolean[] dimsToCollapse, DimKeepRemove keepRemove) {
-//        if (dimsToCollapse.length != shape.dimCount)
-//            throw new RuntimeException("input collapse dims must have same length as shape");
-
-        //Shape physicalShape = toPhysicalShape(shape, dimsToCollapse);
-        int[] dimMapping = createSrcToTargetMapping(dimsToCollapse);
-
-        //double[] t = new double[toIntExact(physicalShape.getSize())];
         sum(x.data, x.shape, 0,
-                data, shape, dimMapping);
+                data, shape, createSrcToTargetMapping(dimsToCollapse));
     }
 
     private static void sum(double[] src, Shape srcShape, int srcI,
@@ -1199,8 +1174,7 @@ public class NDArray implements DisposalRegister.Disposable {
                 if (srcToTgt != -1) {
                     tgtIndices[srcToTgt] = i;
                 }
-                int tgtOffset = tgtShape.calcDataIndex(tgtIndices);
-                tgt[tgtOffset] += srcVal;
+                tgt[tgtShape.calcDataIndex(tgtIndices)] += srcVal;
             }
         } else {
             for (int i = 0; i < dimLen; i++) {
@@ -1221,11 +1195,8 @@ public class NDArray implements DisposalRegister.Disposable {
         fill(mapping, -1);
         int idx = 0;
         for (int i = 0; i < dimsToCollapse.length; i++) {
-            boolean collapseDimension = dimsToCollapse[i];
-            if (!collapseDimension) {
-                mapping[i] = idx;
-                idx++;
-            }
+            if (!dimsToCollapse[i])
+                mapping[i] = idx++;
         }
         return mapping;
     }
@@ -1235,10 +1206,8 @@ public class NDArray implements DisposalRegister.Disposable {
         int[] physicalDims = new int[count];
         int idx = 0;
         for (int i = 0; i < dimsToCollapse.length; i++) {
-            if (!dimsToCollapse[i]) {
-                physicalDims[idx] = shape.at(i);
-                idx++;
-            }
+            if (!dimsToCollapse[i])
+                physicalDims[idx++] = shape.at(i);
         }
         return ProviderStore.shape(physicalDims);
     }
@@ -1247,16 +1216,15 @@ public class NDArray implements DisposalRegister.Disposable {
         int[] physicalDims = new int[dimsToCollapse.length];
         fill(physicalDims, 1);
         for (int i = 0; i < dimsToCollapse.length; i++) {
-            if (!(dimsToCollapse[i])) {
+            if (!(dimsToCollapse[i]))
                 physicalDims[i] = shape.at(i);
-            }
         }
         return new Shape(physicalDims);
     }
 
     private static int countFalse(boolean[] dimsToCollapse) {
         int count = 0;
-        for (Boolean c : dimsToCollapse) if (!(c != null && c)) count++;
+        for (boolean c : dimsToCollapse) if (!c) count++;
         return count;
     }
 
@@ -1273,9 +1241,8 @@ public class NDArray implements DisposalRegister.Disposable {
 
     public NDArray sqr() {
         double[] cp = copyOf(data, data.length);
-        for (int i = 0; i < cp.length; i++) {
+        for (int i = 0; i < cp.length; i++)
             cp[i] *= cp[i];
-        }
 
         return new NDArray(cp, shape.copy());
     }
@@ -1352,10 +1319,7 @@ public class NDArray implements DisposalRegister.Disposable {
             int dims = indices.length;
             for (int x = 0; x < w; x++) {
                 indices[dims - 1] = x;
-                double _a = a.getBroadcasted(indices);
-                double _b = b.getBroadcasted(indices);
-                int outIndex = outShape.calcDataIndex(indices);
-                out[outIndex] = _a / _b;
+                out[outShape.calcDataIndex(indices)] = a.getBroadcasted(indices) / b.getBroadcasted(indices);
             }
         } else {
             int at = outShape.at(dim);
@@ -1371,20 +1335,22 @@ public class NDArray implements DisposalRegister.Disposable {
     }
 
     private static NDArray mul(NDArray a, NDArray b) {
-        if (a.shape.getClass() == b.shape.getClass() &&
-                Arrays.equals(a.shape.dims, b.shape.dims)) {
-            return fastMul(a, b);
-        }
+        Shape as = a.shape, bs = b.shape;
+        if (as.dimCount == 0 && bs.dimCount == 0)
+            return new NDArray(a.data[0] * b.data[0] );
 
-        validateBroadcastShapes(a.shape, b.shape, -1);
-        Shape outShape = evalBroadcastOutputShape(a.shape, b.shape);
+        if (as.getClass() == bs.getClass() && Arrays.equals(as.dims, bs.dims))
+            return fastMul(a, b);
+
+        validateBroadcastShapes(as, bs, -1);
+        Shape outShape = evalBroadcastOutputShape(as, bs);
 
         int[] indexArray = outShape.newIndexArray();
-        double[] data = new double[outShape.size];
 
+        double[] data = new double[outShape.size];
         mul(a, b,
-                data, outShape,
-                indexArray, 0);
+            data, outShape,
+            indexArray, 0);
 
         return new NDArray(data, outShape);
     }
@@ -1406,10 +1372,7 @@ public class NDArray implements DisposalRegister.Disposable {
             int dims = indices.length;
             for (int x = 0; x < w; x++) {
                 indices[dims - 1] = x;
-                double _a = a.getBroadcasted(indices);
-                double _b = b.getBroadcasted(indices);
-                int outIndex = outShape.calcDataIndex(indices);
-                out[outIndex] = _a * _b;
+                out[outShape.calcDataIndex(indices)] = a.getBroadcasted(indices) * b.getBroadcasted(indices);
             }
         } else {
             int at = outShape.at(dim);
@@ -1469,15 +1432,6 @@ public class NDArray implements DisposalRegister.Disposable {
         return conv2d(filter, 0, 0);
     }
 
-    @Override
-    public void prepareDependenciesForDisposal() {
-        waitForValueReady();
-    }
-
-    public void waitForValueReady() {
-        // do nothing
-    }
-
     public NDArray sum(DimKeepRemove keepRemove, int... axes) {
         Shape inputShape = shape;
         boolean[] dimsToCollapse = inputShape.newCollapseArray();
@@ -1496,20 +1450,15 @@ public class NDArray implements DisposalRegister.Disposable {
         return sum(dimsToCollapse, keepRemove);
     }
 
-    @Override
-    public void dispose() {
-        // do nothing
-    }
-
     public NDArray transposeLast2D() {
         int dimCount = shape.dimCount;
-        if (dimCount <= 1) {
+        if (dimCount <= 1)
             throw new DimensionMissing("Expected 2+ dimensions: actualDim=" + dimCount);
-        }
+
         int[] axes = new int[dimCount];
-        for (int i = 0; i < axes.length; i++) {
+        for (int i = 0; i < axes.length; i++)
             axes[i] = i;
-        }
+
         axes[dimCount - 2] = dimCount - 1;
         axes[dimCount - 1] = dimCount - 2;
 
@@ -1542,7 +1491,11 @@ public class NDArray implements DisposalRegister.Disposable {
     public double scalar() {
         if (data.length != 1)
             throw new UnsupportedOperationException(this + " is not a scalar");
-        return dataAt(0);
+        return dataAtIndex(0);
+    }
+
+    public double dataAtIndex(int i) {
+        return data[i];
     }
 
     public enum DimKeepRemove {
@@ -1626,7 +1579,7 @@ public class NDArray implements DisposalRegister.Disposable {
 
         @Override
         public NDArray createMask() {
-            return new NDArray(gradMaskData, Shape.of(dims));
+            return new NDArray(gradMaskData, Shape.shape(dims));
         }
     }
 

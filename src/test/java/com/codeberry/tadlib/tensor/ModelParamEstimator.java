@@ -28,18 +28,18 @@ class ModelParamEstimator {
     public double[] estimate() {
         List<Tensor> params = model.getParams();
         Tensor param = params.get(paramIndex);
-        double[] wData = param.getInternalData();
-        double[] grad = new double[wData.length];
+        int vol = param.shape().size;
+        double[] grad = new double[vol];
         NDArray orgArray = param.val();
 
-        int segLen = wData.length / 4 + 1;
-        System.out.println("Param Index: " + paramIndex + " (" + wData.length + " values)");
-        for (int i = 0; i < wData.length; i++) {
+        int segLen = vol / 4 + 1;
+        System.out.println("Param Index: " + paramIndex + " (" + vol + " values)");
+        for (int i = 0; i < vol; i++) {
             if (i % segLen == 0) {
                 System.out.println("  " + (i * 100 / grad.length) + "%");
             }
 
-            double org = wData[i];
+            double org = param.val().dataAtIndex(i);
 
             grad[i] = estimateWithRespectToElement(param, DELTA, i, org);
 

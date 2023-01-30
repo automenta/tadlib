@@ -11,8 +11,8 @@ public class ReorderedJavaShape extends Shape {
     public ReorderedJavaShape(int[] dims, int[] order) {
         super(dims);
         this.order = order;
-        blockSizes = new int[dims.length];
 
+        blockSizes = new int[dims.length];
         int blockSize = 1;
         for (int i = blockSizes.length - 1; i >= 0; i--) {
             blockSizes[i] = blockSize;

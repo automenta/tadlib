@@ -51,7 +51,7 @@ public class TArrayConv2D {
         System.out.println(toJson(y.toDoubles(), StringUtils.JsonPrintMode.COMPACT));
         System.out.println(toJson(realY.toDoubles(), StringUtils.JsonPrintMode.COMPACT));
         System.out.println((
-                5 * 1 + 2 * 2 + 4 * 3 +
+                5 + 2 * 2 + 4 * 3 +
                         77 * 4 + 11 * 5 + 44 * 6 +
                         13 * 7 + 17 * 8 + 23 * 9));
     }
@@ -114,12 +114,9 @@ public class TArrayConv2D {
         NDArray a = ProviderStore.array((double[][][][]) ja.toDoubles());
         NDArray b = ProviderStore.array((double[][][][]) jb.toDoubles());
 
-        a.waitForValueReady();
-        b.waitForValueReady();
         // ----
         long st = System.currentTimeMillis();
         NDArray y = a.conv2d(b);
-        y.waitForValueReady();
         long used = System.currentTimeMillis() - st;
         System.out.println("used = " + used);
         Object ndResult = y.toDoubles();

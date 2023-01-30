@@ -36,8 +36,7 @@ class TArrayAdd {
             c = old
                     .add(a)
                     .add(a);
-            c.waitForValueReady();
-//            System.out.println("i = " + i);
+            //            System.out.println("i = " + i);
 //            ((OclArray)old).dispose();
 //            System.gc();
         }

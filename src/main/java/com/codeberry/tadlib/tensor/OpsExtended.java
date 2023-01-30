@@ -2,7 +2,6 @@ package com.codeberry.tadlib.tensor;
 
 import com.codeberry.tadlib.provider.java.NDArray;
 import com.codeberry.tadlib.provider.java.Shape;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
 
 import java.util.List;
 
@@ -100,7 +99,7 @@ public abstract class OpsExtended {
 
             this.running = new Data(newMean, newVariance);
 
-            old.registerForDisposal();
+//            old.registerForDisposal();
         }
 
         private static NDArray update(NDArray old, NDArray current, double momentum) {
@@ -125,18 +124,17 @@ public abstract class OpsExtended {
             return asList(r.mean, r.variance);
         }
 
-        public static class Data {
-            public final NDArray mean;
-            public final NDArray variance;
+        static class Data {
+            final NDArray mean, variance;
 
             Data(NDArray mean, NDArray variance) {
                 this.mean = mean;
                 this.variance = variance;
             }
 
-            void registerForDisposal() {
-                DisposalRegister.registerForDisposal(this.mean, this.variance);
-            }
+//            void registerForDisposal() {
+//                DisposalRegister.registerForDisposal(this.mean, this.variance);
+//            }
         }
     }
 

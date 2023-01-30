@@ -6,8 +6,6 @@ import com.codeberry.tadlib.nn.optimizer.Optimizer;
 import com.codeberry.tadlib.provider.ProviderStore;
 import com.codeberry.tadlib.provider.java.NDArray;
 import com.codeberry.tadlib.provider.java.Shape;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
-import com.codeberry.tadlib.util.memory.DisposalRegister.Disposable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -16,7 +14,6 @@ import java.util.function.Consumer;
 
 import static com.codeberry.tadlib.tensor.Tensor.GradientMode.CALCULATE_GRAD;
 import static com.codeberry.tadlib.tensor.Tensor.GradientMode.NONE;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 
 public class Tensor {
@@ -49,11 +46,11 @@ public class Tensor {
 
     private NDArray gradient;
 
-    public Tensor(double val) {
+    private Tensor(double val) {
         this(val, CALCULATE_GRAD);
     }
 
-    public Tensor(double val, GradientMode mode) {
+    private Tensor(double val, GradientMode mode) {
         this(ProviderStore.array(val), emptyList(), mode);
     }
 
@@ -75,6 +72,10 @@ public class Tensor {
 
     public Tensor(double[] val, Shape shape) {
         this(ProviderStore.array(val).reshape(shape));
+    }
+
+    public Tensor(Shape shape) {
+        this(new NDArray(shape));
     }
 
     public Tensor(NDArray val) {
@@ -117,12 +118,13 @@ public class Tensor {
         return new Tensor(vals);
     }
 
-    public static Tensor tensor(double val) {
-        return new Tensor(val);
-    }
 
     public static Tensor tensor(NDArray tArray) {
         return new Tensor(tArray);
+    }
+
+    public static Tensor scalar(double val) {
+        return new Tensor(val);
     }
 
     public static Tensor constant(double val) {
@@ -132,11 +134,6 @@ public class Tensor {
     public static Tensor constant(NDArray val) {
         return new Tensor(val, NONE);
     }
-
-    public List<Disposable> getDisposables() {
-        return asList(val, gradient);
-    }
-
 
     private void gradientAccum(NDArray gradient) {
         ensureGradientShape(gradient);
@@ -165,6 +162,10 @@ public class Tensor {
             }
         }
         return v;
+    }
+
+    public void set(double[] x) {
+        set(new NDArray(x, shape()));
     }
 
     public void set(NDArray x) {
@@ -198,13 +199,19 @@ public class Tensor {
 
         return val();
     }
+    public final NDArray optimize(Optimizer o, double[] gradient) {
+        backward(gradient, true);
+
+        o.optimize(optimizables());
+
+        return val();
+    }
 
     private List<Tensor> optimizables() {
         if (optimizables == null)
             optimizables = compileOptimizables();
 
-        List<Tensor> oo = optimizables;
-        return oo;
+        return optimizables;
     }
 
     private List<Tensor> compileOptimizables() {
@@ -245,6 +252,10 @@ public class Tensor {
             p.tensor.gradientZero();
     }
 
+    public void backward() {
+        backward(true);
+    }
+
     public void backward(boolean zero) {
         if (zero)
             gradientZero();
@@ -252,8 +263,10 @@ public class Tensor {
         backward(TArrayFactory.ones(shape()));
     }
 
-    public void backward() {
-        backward(true);
+
+    public final void backward(double[] gradient, boolean zero) {
+        if (zero) gradientZero();
+        backward(new NDArray(gradient, shape()));
     }
 
     public final void backward(NDArray gradient) {
@@ -336,7 +349,7 @@ public class Tensor {
 
         set(newVals);
 
-        DisposalRegister.registerForDisposal(old);
+//        DisposalRegister.registerForDisposal(old);
 
         resetGradient();
     }
@@ -360,9 +373,9 @@ public class Tensor {
         return val.shape;
     }
 
-    public double[] getInternalData() {
-        return val.getInternalData();
-    }
+//    public double[] getInternalData() {
+//        return val.getInternalData();
+//    }
 
     public double dataAt(int... indices) {
         return val.dataAt(indices);
@@ -373,9 +386,9 @@ public class Tensor {
     }
 
     public void resetGradient() {
-        if (gradient != null) {
-            DisposalRegister.registerForDisposal(gradient);
-        }
+//        if (gradient != null) {
+//            DisposalRegister.registerForDisposal(gradient);
+//        }
         this.gradient = null;
     }
 

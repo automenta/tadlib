@@ -1,13 +1,10 @@
 package com.codeberry.tadlib.provider.java;
 
-import com.codeberry.tadlib.array.exception.CannotSqueezeNoneSingleDimension;
-import com.codeberry.tadlib.array.exception.DuplicatedSqueezeDimension;
 import com.codeberry.tadlib.array.exception.InvalidTargetShape;
 import com.codeberry.tadlib.provider.ProviderStore;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -20,31 +17,30 @@ public class Shape {
     public final int size, dimCount;
 
     private Shape() {
-        //noinspection ZeroLengthArrayAllocation
-        this(new int[]{});
+        //this(new int[]{});
+        this.dims = new int[] { };
+        this.dimCount = 0;
+        this.size = 1;
     }
 
-    public Shape(int... dims) {
-//        System.out.println("JavaShape.JavaShape");
+    public Shape(int[] dims) {
+        if (dims.length==0)
+            throw new UnsupportedOperationException("use zeroDim");
         this.dims = dims;
         this.dimCount = dims.length;
         this.size = mul(dims);
     }
 
-    public static Shape of(int[] srcDims) {
-        return new Shape(Arrays.copyOf(srcDims, srcDims.length));
-    }
-
     public static final Shape zeroDim = new Shape();
 
     public static Shape shape(int... dims) {
-        return new Shape(dims);
+        return dims.length == 0 ? zeroDim : new Shape(dims);
     }
 
     public static String asString(Shape shape) {
-        if (shape.dimCount == 0) {
+        if (shape.dimCount == 0)
             return "<>";
-        }
+
         StringBuilder buf = new StringBuilder("<");
         for (int i = 0; i < shape.dimCount; i++) {
             buf.append(shape.at(i)).append(",");
@@ -59,11 +55,10 @@ public class Shape {
 //    }
 
     public int at(int dim) {
-        if (dims.length == 0) return 0;
-        return dims[wrapIndex(dim)];
+        return dims.length == 0 ? 0 : dims[wrapIndex(dim)];
     }
 
-    protected int wrapIndex(int dim) {
+    int wrapIndex(int dim) {
         return dim >= 0 ? dim : dimCount + dim;
     }
 
@@ -91,43 +86,41 @@ public class Shape {
         return offset;
     }
 
-    public Shape squeeze(int... removeSingleDimsIndices) {
-        if (this instanceof ReorderedJavaShape) {
-            throw new UnsupportedOperationException("Reordered not supported");
-        }
-        int[] _tmp = Arrays.copyOf(removeSingleDimsIndices, removeSingleDimsIndices.length);
-        for (int i = 0; i < _tmp.length; i++) {
-            if (_tmp[i] <= -1) {
-                _tmp[i] += dimCount;
-            }
-        }
-        BitSet bitSet = new BitSet();
-        for (int idx : _tmp) {
-            if (!bitSet.get(idx)) {
-                bitSet.set(idx);
-            } else {
-                throw new DuplicatedSqueezeDimension("dim=" + idx);
-            }
-        }
-        for (int i = 0; i < _tmp.length; i++) {
-            if (this.dims[_tmp[i]] != 1) {
-                throw new CannotSqueezeNoneSingleDimension("index=" + i + " dim=" + _tmp[i]);
-            }
-        }
-        int[] dims = new int[dimCount - _tmp.length];
-        int idx = 0;
-        for (int i = 0; i < this.dims.length; i++) {
-            if (!bitSet.get(i)) {
-                dims[idx] = this.dims[i];
-                idx++;
-            }
-        }
-        return new Shape(dims);
-    }
+//    public Shape squeeze(int... removeSingleDimsIndices) {
+//        if (this instanceof ReorderedJavaShape) {
+//            throw new UnsupportedOperationException("Reordered not supported");
+//        }
+//        int[] _tmp = Arrays.copyOf(removeSingleDimsIndices, removeSingleDimsIndices.length);
+//        for (int i = 0; i < _tmp.length; i++) {
+//            if (_tmp[i] <= -1) {
+//                _tmp[i] += dimCount;
+//            }
+//        }
+//        BitSet bitSet = new BitSet();
+//        for (int idx : _tmp) {
+//            if (!bitSet.get(idx))
+//                bitSet.set(idx);
+//            else
+//                throw new DuplicatedSqueezeDimension("dim=" + idx);
+//        }
+//        for (int i = 0; i < _tmp.length; i++) {
+//            if (this.dims[_tmp[i]] != 1)
+//                throw new CannotSqueezeNoneSingleDimension("index=" + i + " dim=" + _tmp[i]);
+//        }
+//        int[] dims = new int[dimCount - _tmp.length];
+//        int idx = 0;
+//        for (int i = 0; i < this.dims.length; i++) {
+//            if (!bitSet.get(i)) {
+//                dims[idx] = this.dims[i];
+//                idx++;
+//            }
+//        }
+//        return new Shape(dims);
+//    }
 
     // remove any reordering etc.
     public Shape normalOrderedCopy() {
-        return new Shape(Arrays.copyOf(this.dims, this.dims.length));
+        return Shape.shape(dims.clone());
     }
 
 //    public int[] getDimensions() {
@@ -135,9 +128,8 @@ public class Shape {
 //    }
 
     public double[] convertDataToShape(double[] data, Shape tgtShape) {
-        if (tgtShape.getClass() == this.getClass()) {
-            return Arrays.copyOf(data, data.length);
-        }
+        if (tgtShape.getClass() == this.getClass())
+            return data.clone();//Arrays.copyOf(data, data.length);
 
         double[] cp = new double[data.length];
 
@@ -153,10 +145,7 @@ public class Shape {
             //...last index
             for (int i = 0; i < len; i++) {
                 indices[dim] = i;
-                int srcOffset = calcDataIndex(indices);
-                int tgtOffset = tgtShape.calcDataIndex(indices);
-                tgt[tgtOffset] =
-                        src[srcOffset];
+                tgt[tgtShape.calcDataIndex(indices)] = src[calcDataIndex(indices)];
             }
         } else {
             for (int i = 0; i < len; i++) {
@@ -172,7 +161,7 @@ public class Shape {
     }
 
     public Shape copy() {
-        return new Shape(dims);
+        return this;
     }
 
     public int getDimCount() {
@@ -181,10 +170,7 @@ public class Shape {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Shape) {
-            return equalsShape((Shape) obj);
-        }
-        return false;
+        return obj instanceof Shape os && equalsShape(os);
     }
 
     @Override
@@ -195,13 +181,10 @@ public class Shape {
     public int atOrDefault(int dim, int defaultValue) {
         int dimCount = this.dimCount;
         int i = (dim >= 0 ? dim : dimCount + dim);
-        if (i >= 0 && i < dimCount) {
-            return at(i);
-        }
-        return defaultValue;
+        return i >= 0 && i < dimCount ? at(i) : defaultValue;
     }
 
-    public int calcDataIndex(int... indices) {
+    public int calcDataIndex(int[] indices) {
         int idx = 0;
         int blockSize = 1;
         for (int i = indices.length - 1; i >= 0; i--) {
@@ -235,7 +218,7 @@ public class Shape {
     public boolean equalsShape(Shape other) {
         if (this == other) return true;
         if (other != null) {
-            if ((long) size == (long) other.size) {
+            if (size == other.size) {
                 if (dimCount == other.dimCount) {
                     for (int i = dimCount - 1; i >= 0; i--) {
                         if (at(i) != other.at(i)) {
@@ -394,5 +377,15 @@ public class Shape {
         } else {
             return (dimCount + dimIndex);
         }
+    }
+
+    public double dataAt(double[] data, int[] indices, double ifOOB) {
+        if (indices.length == 1 && indices[0] == 0 && data.length == 1)
+            return data[0]; //scalar HACK
+
+        if (isValid(indices))
+            return data[calcDataIndex(indices)];
+        else
+            return ifOOB;
     }
 }

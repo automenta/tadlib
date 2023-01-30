@@ -3,10 +3,7 @@ package com.codeberry.tadlib.nn.optimizer;
 import com.codeberry.tadlib.nn.optimizer.schedule.LearningRateSchedule;
 import com.codeberry.tadlib.provider.java.NDArray;
 import com.codeberry.tadlib.tensor.Tensor;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 
@@ -39,26 +36,20 @@ public class RMSProp implements Optimizer {
 
         for (Tensor p : params) {
             p.update((values, gradient) -> {
-                NDArray sT = updateST(p, gradient);
+                NDArray sT = update(p, gradient);
                 return values.sub(gradient.mul(lr).div(sT.add(EPSILON).sqrt()));
             });
         }
     }
 
-    @Override
-    public Collection<? extends DisposalRegister.Disposable> getKeepInMemoryDisposables() {
-        return /*Collections.unmodifiableCollection*/(sTMap.values());
-    }
-
-    private NDArray updateST(Tensor p, NDArray gradient) {
+    /** TODO optimize */
+    private NDArray update(Tensor p, NDArray gradient) {
         NDArray sT = sTMap.get(p);
         if (sT == null)
             sT = zeros(gradient.shape);
 
-        NDArray gradSqr = gradient.sqr();
-        sT = sT.mul(gamma).add(gradSqr.mul(1.0 - gamma));
-        NDArray old = sTMap.put(p, sT);
-        DisposalRegister.registerForDisposal(old);
-        return sT;
+        NDArray next;
+        NDArray old = sTMap.put(p, next = sT.mul(gamma).add(gradient.sqr().mul(1 - gamma)));
+        return next;
     }
 }

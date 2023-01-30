@@ -2,11 +2,12 @@ package com.codeberry.tadlib.provider.java;
 
 import com.codeberry.tadlib.array.Comparison;
 import com.codeberry.tadlib.array.util.FlatToMultiDimArrayConverter;
-import com.codeberry.tadlib.util.memory.DisposalRegister;
 
 import java.util.function.IntFunction;
 
-public class JavaIntArray implements DisposalRegister.Disposable {
+import static com.codeberry.tadlib.provider.java.Shape.zeroDim;
+
+public class JavaIntArray  {
     final int[] data;
     public final Shape shape;
 
@@ -16,9 +17,9 @@ public class JavaIntArray implements DisposalRegister.Disposable {
     }
 
     public JavaIntArray(int v) {
-        this.data = new int[]{v};
-        // zero dim
-        this.shape = new Shape();
+        this(new int[]{v}, zeroDim);
+//        this.data = new int[]{v};
+//        this.shape = zeroDim;//new Shape();
     }
 
     public Object toInts() {
@@ -28,7 +29,7 @@ public class JavaIntArray implements DisposalRegister.Disposable {
     /**
      * @return Integer.MIN_VALUE at out of bounds
      */
-    public int dataAt(int... indices) {
+    int dataAt(int... indices) {
         return shape.isValid(indices) ? data[shape.calcDataIndex(indices)] : Integer.MIN_VALUE;
     }
 
@@ -41,25 +42,12 @@ public class JavaIntArray implements DisposalRegister.Disposable {
     }
 
     public JavaIntArray compare(JavaIntArray other, Comparison comparison, int trueValue, int falseValue) {
-        IntFunction<Integer> left = offset -> this.data[offset];
-        IntFunction<Integer> right = offset -> other.data[offset];
+        IntFunction<Integer>
+            left = offset -> this.data[offset],
+            right = offset -> other.data[offset];
 
         return CompareHelper.compare(comparison::intIsTrue, trueValue, falseValue,
                 this.shape, other.shape, left, right, new IntNDArrayWriter());
-    }
-
-    @Override
-    public void prepareDependenciesForDisposal() {
-        waitForValueReady();
-    }
-
-    public void waitForValueReady() {
-        // do nothing
-    }
-
-    @Override
-    public void dispose() {
-        // do nothing
     }
 
     private static class IntNDArrayWriter implements CompareHelper.CompareWriter<Integer, JavaIntArray> {

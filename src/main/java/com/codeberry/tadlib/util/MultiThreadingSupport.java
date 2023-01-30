@@ -72,11 +72,10 @@ public abstract class MultiThreadingSupport {
             return new TaskRange(start, end, minLen);
         }
 
-        public TaskRange leftPart() {
+        TaskRange leftPart() {
             return new TaskRange(start, start + length() / 2, minLength);
         }
-
-        public TaskRange rightPart() {
+        TaskRange rightPart() {
             return new TaskRange(start + length() / 2, end, minLength);
         }
 
@@ -91,7 +90,7 @@ public abstract class MultiThreadingSupport {
         private final Function<TaskRange, R> task;
         private final BiFunction<R, R, R> merger;
 
-        public MyRecursiveTask(TaskRange range, Function<TaskRange, R> task, BiFunction<R, R, R> merger) {
+        MyRecursiveTask(TaskRange range, Function<TaskRange, R> task, BiFunction<R, R, R> merger) {
             this.range = range;
             this.task = task;
             this.merger = merger;
